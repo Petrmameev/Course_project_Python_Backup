@@ -1,5 +1,3 @@
-import operator
-
 import requests
 
 import setting
@@ -33,7 +31,6 @@ class VK:
                   }
         response = requests.get(url, params={**self.params, **params})
         data = response.json()
-        # print(data)
         return data
 
     def photos(self):
@@ -43,29 +40,12 @@ class VK:
         for foto in list_foto:
             file_name = foto['likes']['count']
             file_name_if_have = f'{foto["likes"]["count"]}{foto["date"]}'
-            dict_all_size_foto = {}
-
-            #     sizes = ['w', 'z', 'y', 'x', 'm', 's']
-            #     count = 0
-            #     for type_foto in foto['sizes']:
-            #         for type_ in type_foto['type']:
-            #             for size in sizes:
-            #                 if type_ == sizes[count]:
-            #                     dict_max_size_foto[file_name] = type_foto['url']
-            #                     pass
-            #                 else:
-            #                     count += 1
-            # print(dict_max_size_foto)
-
-            for sizes_foto in foto['sizes']:
-                # dict_all_size_foto[sizes_foto['url']] = {sizes_foto['height']: sizes_foto['type']}
-                dict_all_size_foto[sizes_foto['url']] = sizes_foto['height']
-                # print(dict_all_size_foto)
-            x = max(dict_all_size_foto.items(), key=operator.itemgetter(1))
+            size_dict = {'s': 0, 'm': 1, 'o': 2, 'p': 3, 'q': 4, 'r': 5, 'x': 6, 'y': 7, 'z': 8, 'w': 9}
+            max_size_foto = max(foto['sizes'], key=lambda x: size_dict[x['type']])
             if file_name not in dict_max_size_foto.keys():
-                dict_max_size_foto[file_name] = x[0]
+                dict_max_size_foto[file_name] = {max_size_foto['type']: max_size_foto['url']}
             else:
-                dict_max_size_foto[file_name_if_have] = x[0]
+                dict_max_size_foto[file_name_if_have] = {max_size_foto['type']: max_size_foto['url']}
         return (dict_max_size_foto)
 
 
@@ -102,18 +82,13 @@ class YaUploader:
         self.vk_fotos = VK(access_token, user_id)
         all_foto = self.vk_fotos.photos()
         self.create_folder()
-        data_vk = self.vk_fotos.json_data()
-        list_foto = data_vk['response']['items']
         for k, v in tqdm(all_foto.items()):
             sleep(0.1)
             path_to_file = f'{self.name_folder}/{k}.jpeg'
-            resp = requests.post(url, headers=self.get_headers(), params={'path': path_to_file, 'url': v})
-            for foto in list_foto:
-                for sizes_foto in foto['sizes']:
-                    if sizes_foto['url'] == v:
-                        b = sizes_foto['type']
-                        json_foto = {"file_name": f'{k}.jpg', "size": f'{b}'}
-                        info_foto_in_jason.append(json_foto)
+            resp = requests.post(url, headers=self.get_headers(), params={'path': path_to_file, 'url': v.values()})
+            for key_ in v.keys():
+                json_foto = {"file_name": f'{k}.jpg', "size": f'{key_}'}
+                info_foto_in_jason.append(json_foto)
         return (info_foto_in_jason)
 
 
